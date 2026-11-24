@@ -35,9 +35,10 @@
 
   <script>
     if (window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
+    const API_URL = "https://modal.run";
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
-    let t = 0, mood = 'calm';
+    let t = 0, mood = 'calm', rep = 50;
 
     function draw() {
       canvas.width = window.innerWidth;
@@ -54,33 +55,28 @@
       ctx.lineWidth = 6;
       ctx.lineCap = 'round';
 
-      // Ноги
       ctx.beginPath();
       ctx.moveTo(cx - 12, ground - 65 + breath); ctx.lineTo(cx - 20, ground);
       ctx.moveTo(cx + 12, ground - 65 + breath); ctx.lineTo(cx + 20, ground);
       ctx.stroke();
 
-      // Туловище (куртка)
       ctx.fillStyle = '#2d333b';
       ctx.beginPath();
       ctx.roundRect(cx - 24, ground - 125 + breath, 48, 65, 12);
       ctx.fill();
       ctx.stroke();
 
-      // Руки
       ctx.beginPath();
       ctx.moveTo(cx - 24, ground - 115 + breath); ctx.lineTo(cx - 48, ground - 75 + wave);
       ctx.moveTo(cx + 24, ground - 115 + breath); ctx.lineTo(cx + 48, ground - 75 - wave);
       ctx.stroke();
 
-      // Голова
       ctx.fillStyle = '#f0c6a0';
       ctx.beginPath();
       ctx.arc(cx, ground - 150 + breath, 22, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
 
-      // Глаза и брови
       ctx.fillStyle = '#111';
       ctx.fillRect(cx - 9, ground - 154 + breath, 5, 5);
       ctx.fillRect(cx + 4, ground - 154 + breath, 5, 5);
@@ -95,16 +91,36 @@
     }
     draw();
 
-    function send() {
+    async function send() {
       const inp = document.getElementById('inp');
       const txt = inp.value.trim();
       if (!txt) return;
       addMsg(txt, 'user');
       inp.value = '';
-      mood = txt.includes('!') ? 'angry' : 'calm';
-      document.getElementById('mood').innerText = mood === 'angry' ? 'На взводе' : 'Спокоен';
-      setTimeout(() => addMsg('Принял. Скоро прикрутим сюда мозги с сервера Modal!', 'bot'), 400);
+      const waitDiv = addMsg('⏳ Вован думает...', 'bot');
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: txt })
+        });
+        const data = await res.json();
+        waitDiv.innerText = data.reply || 'Молчит...';
+        const low = (data.reply || '').toLowerCase();
+        if (low.includes('кастет') || low.includes('хер') || low.includes('слышь') || low.includes('!')) {
+          mood = 'angry';
+          rep = Math.max(0, rep - 5);
+        } else {
+          mood = 'calm';
+          rep = Math.min(100, rep + 5);
+        }
+        document.getElementById('mood').innerText = mood === 'angry' ? 'На взводе' : 'Спокоен';
+        document.getElementById('rep').innerText = rep + '%';
+      } catch (e) {
+        waitDiv.innerText = 'Связь с сервером оборвалась, попробуй еще раз.';
+      }
     }
+
     function addMsg(text, cls) {
       const div = document.createElement('div');
       div.className = 'msg ' + cls;
@@ -112,6 +128,7 @@
       const chat = document.getElementById('chat');
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
+      return div;
     }
   </script>
 </body>
