@@ -6,31 +6,40 @@
   <title>Вован: Решала</title>
   <script src="https://telegram.org"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background: #0f1117; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    #scene { width: 100%; height: 48vh; background: linear-gradient(180deg, #161b29 0%, #242b3d 100%); display: block; border-bottom: 2px solid #30363d; }
-    #hud { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; justify-content: space-between; font-size: 13px; background: rgba(0,0,0,0.5); padding: 6px 10px; border-radius: 8px; }
-    #chat { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .msg { padding: 8px 12px; border-radius: 12px; max-width: 85%; font-size: 14px; line-height: 1.35; }
-    .bot { background: #21262d; align-self: flex-start; border: 1px solid #30363d; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    body { background: #0a0d14; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    #scene { width: 100%; height: 46vh; display: block; border-bottom: 2px solid #262c3a; }
+    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-size: 12px; background: rgba(10,13,20,0.75); padding: 7px 12px; border-radius: 10px; border: 1px solid #2a3142; backdrop-filter: blur(4px); }
+    #chat { flex: 1; padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .msg { padding: 9px 13px; border-radius: 14px; max-width: 85%; font-size: 14px; line-height: 1.35; animation: pop 0.2s ease; }
+    @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .bot { background: #1c2230; align-self: flex-start; border: 1px solid #2d3548; }
     .user { background: #1f6feb; align-self: flex-end; }
-    #controls { display: flex; padding: 8px; gap: 6px; background: #161b22; border-top: 1px solid #30363d; }
-    input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #fff; outline: none; }
-    button { padding: 10px 16px; border-radius: 8px; border: none; background: #238636; color: #fff; font-weight: bold; }
+    #quick { display: flex; gap: 6px; padding: 6px 8px; overflow-x: auto; background: #10141f; border-top: 1px solid #1e2433; }
+    .qbtn { white-space: nowrap; padding: 7px 11px; border-radius: 16px; border: 1px solid #30394f; background: #181f2e; color: #c9d1d9; font-size: 12px; }
+    #controls { display: flex; padding: 8px; gap: 6px; background: #121722; border-top: 1px solid #242b3b; }
+    input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2d3548; background: #0a0d14; color: #fff; outline: none; font-size: 14px; }
+    button#sendBtn { padding: 10px 16px; border-radius: 10px; border: none; background: #238636; color: #fff; font-weight: bold; font-size: 15px; }
   </style>
 </head>
 <body>
   <div id="hud">
     <span>😎 Уважение: <b id="rep">50%</b></span>
-    <span>⚡ Статус: <b id="mood">Спокоен</b></span>
+    <span>💵 Бабки: <b id="cash">1000₽</b></span>
+    <span>⚡ <b id="mood">На чиле</b></span>
   </div>
   <canvas id="scene"></canvas>
   <div id="chat">
-    <div class="msg bot">Слышь, братуха, заходи. Чё принес или по какому вопросу?</div>
+    <div class="msg bot">Здарова, братуха. Ночь длинная, район не спит. С чем пожаловал?</div>
+  </div>
+  <div id="quick">
+    <button class="qbtn" onclick="quickSend('Здарова, есть деловое предложение.')">🤝 По делу</button>
+    <button class="qbtn" onclick="quickSend('Чё такой дерзкий? Расслабься.')">🔥 Наехать</button>
+    <button class="qbtn" onclick="quickSend('Держи на чай, расскажи чё нового.')">💵 Подгон</button>
   </div>
   <div id="controls">
-    <input id="inp" placeholder="Напиши ответ..." />
-    <button onclick="send()">▶</button>
+    <input id="inp" placeholder="Напиши свой вариант..." />
+    <button id="sendBtn" onclick="send()">▶</button>
   </div>
 
   <script>
@@ -38,66 +47,115 @@
     const API_URL = "https://" + "oleksandr-dmytrovych-denisov--vova-ai-bot-game-chat.us-east.modal.run";
     const canvas = document.getElementById('scene');
     const ctx = canvas.getContext('2d');
-    let t = 0, mood = 'calm', rep = 50;
+    let t = 0, mood = 'calm', rep = 50, cash = 1000, talking = 0;
+
+    // Тихий прогрев сервера сразу при открытии игры
+    fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'Привет' }) }).catch(() => {});
 
     function draw() {
       canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight * 0.48;
-      const cx = canvas.width / 2, ground = canvas.height - 25;
+      canvas.height = window.innerHeight * 0.46;
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, ground = h - 28;
       t += 0.05;
-      const breath = Math.sin(t) * 3;
-      const wave = mood === 'angry' ? Math.sin(t * 4) * 18 : Math.sin(t * 1.5) * 6;
+      if (talking > 0) talking--;
 
-      ctx.fillStyle = '#11141c';
-      ctx.fillRect(0, ground, canvas.width, 25);
+      // Ночное небо и здания на фоне
+      const sky = ctx.createLinearGradient(0, 0, 0, h);
+      sky.addColorStop(0, '#090d16'); sky.addColorStop(1, '#1a2234');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
 
-      ctx.strokeStyle = mood === 'angry' ? '#ff5555' : '#58a6ff';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
+      ctx.fillStyle = '#111622';
+      ctx.fillRect(15, h * 0.22, 65, ground - h * 0.22);
+      ctx.fillRect(w - 85, h * 0.18, 70, ground - h * 0.18);
 
+      // Светящиеся окна
+      ctx.fillStyle = '#f2cc60';
+      ctx.fillRect(28, h * 0.28, 10, 14); ctx.fillRect(52, h * 0.36, 10, 14);
+      ctx.fillRect(w - 68, h * 0.25, 10, 14); ctx.fillRect(w - 42, h * 0.34, 10, 14);
+
+      // Уличный фонарь и луч света
+      ctx.strokeStyle = '#384152'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(45, ground); ctx.lineTo(45, h * 0.14); ctx.lineTo(75, h * 0.14); ctx.stroke();
+      const glow = ctx.createRadialGradient(75, h * 0.15, 2, 75, h * 0.15, 110);
+      glow.addColorStop(0, 'rgba(255, 220, 130, 0.35)'); glow.addColorStop(1, 'rgba(255, 220, 130, 0)');
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(75, h * 0.15, 110, 0, Math.PI * 2); ctx.fill();
+
+      // Асфальт
+      ctx.fillStyle = '#141821'; ctx.fillRect(0, ground, w, 28);
+
+      const breath = Math.sin(t) * 2.5;
+      const armMove = mood === 'angry' ? Math.sin(t * 4) * 16 : (talking > 0 ? Math.sin(t * 5) * 10 : Math.sin(t * 1.2) * 4);
+
+      // Джинсы и кроссовки
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(cx - 18, ground - 62 + breath, 14, 56);
+      ctx.fillRect(cx + 4, ground - 62 + breath, 14, 56);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(cx - 21, ground - 8, 18, 8);
+      ctx.fillRect(cx + 3, ground - 8, 18, 8);
+
+      // Кожанка и белая футболка
+      ctx.fillStyle = '#18181b';
+      ctx.beginPath(); ctx.roundRect(cx - 26, ground - 122 + breath, 52, 62, 12); ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(cx - 7, ground - 120 + breath, 14, 55);
+
+      // Руки
+      ctx.strokeStyle = '#18181b'; ctx.lineWidth = 10; ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(cx - 12, ground - 65 + breath); ctx.lineTo(cx - 20, ground);
-      ctx.moveTo(cx + 12, ground - 65 + breath); ctx.lineTo(cx + 20, ground);
+      ctx.moveTo(cx - 25, ground - 112 + breath); ctx.lineTo(cx - 46, ground - 72 + armMove);
+      ctx.moveTo(cx + 25, ground - 112 + breath); ctx.lineTo(cx + 46, ground - 72 - armMove);
       ctx.stroke();
 
-      ctx.fillStyle = '#2d333b';
-      ctx.beginPath();
-      ctx.roundRect(cx - 24, ground - 125 + breath, 48, 65, 12);
-      ctx.fill();
-      ctx.stroke();
+      // Голова и кепка
+      ctx.fillStyle = '#f1c29b';
+      ctx.beginPath(); ctx.arc(cx, ground - 146 + breath, 21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111827';
+      ctx.beginPath(); ctx.arc(cx, ground - 151 + breath, 21, Math.PI, 0); ctx.fill();
+      ctx.fillRect(cx - 22, ground - 153 + breath, 48, 5);
 
-      ctx.beginPath();
-      ctx.moveTo(cx - 24, ground - 115 + breath); ctx.lineTo(cx - 48, ground - 75 + wave);
-      ctx.moveTo(cx + 24, ground - 115 + breath); ctx.lineTo(cx + 48, ground - 75 - wave);
-      ctx.stroke();
-
-      ctx.fillStyle = '#f0c6a0';
-      ctx.beginPath();
-      ctx.arc(cx, ground - 150 + breath, 22, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = '#111';
-      ctx.fillRect(cx - 9, ground - 154 + breath, 5, 5);
-      ctx.fillRect(cx + 4, ground - 154 + breath, 5, 5);
+      // Глаза и брови
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(cx - 9, ground - 148 + breath, 4, 4);
+      ctx.fillRect(cx + 5, ground - 148 + breath, 4, 4);
       if (mood === 'angry') {
-        ctx.strokeStyle = '#111'; ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(cx - 12, ground - 160 + breath); ctx.lineTo(cx - 3, ground - 156 + breath);
-        ctx.moveTo(cx + 12, ground - 160 + breath); ctx.lineTo(cx + 3, ground - 156 + breath);
+        ctx.moveTo(cx - 12, ground - 154 + breath); ctx.lineTo(cx - 3, ground - 150 + breath);
+        ctx.moveTo(cx + 12, ground - 154 + breath); ctx.lineTo(cx + 3, ground - 150 + breath);
         ctx.stroke();
       }
+
+      // Рот (двигается, когда говорит)
+      ctx.fillStyle = '#7f1d1d';
+      const mouthH = talking > 0 ? Math.abs(Math.sin(t * 8)) * 6 + 2 : 2;
+      ctx.fillRect(cx - 5, ground - 137 + breath, 10, mouthH);
+
       requestAnimationFrame(draw);
     }
     draw();
 
-    async function send() {
+    function quickSend(text) {
+      if (text.includes('Подгон')) {
+        if (cash >= 100) { cash -= 100; rep = Math.min(100, rep + 10); }
+        document.getElementById('cash').innerText = cash + '₽';
+        document.getElementById('rep').innerText = rep + '%';
+      }
+      sendText(text);
+    }
+
+    function send() {
       const inp = document.getElementById('inp');
       const txt = inp.value.trim();
       if (!txt) return;
-      addMsg(txt, 'user');
       inp.value = '';
-      const waitDiv = addMsg('⏳ Вован думает...', 'bot');
+      sendText(txt);
+    }
+
+    async function sendText(txt) {
+      addMsg(txt, 'user');
+      const waitDiv = addMsg('⏳ Вован прикидывает...', 'bot');
       try {
         const res = await fetch(API_URL, {
           method: 'POST',
@@ -106,6 +164,7 @@
         });
         const data = await res.json();
         waitDiv.innerText = data.reply || 'Молчит...';
+        talking = 70;
         const low = (data.reply || '').toLowerCase();
         if (low.includes('кастет') || low.includes('хер') || low.includes('слышь') || low.includes('!')) {
           mood = 'angry';
@@ -114,10 +173,10 @@
           mood = 'calm';
           rep = Math.min(100, rep + 5);
         }
-        document.getElementById('mood').innerText = mood === 'angry' ? 'На взводе' : 'Спокоен';
+        document.getElementById('mood').innerText = mood === 'angry' ? 'На взводе' : 'На чиле';
         document.getElementById('rep').innerText = rep + '%';
       } catch (e) {
-        waitDiv.innerText = 'Связь с сервером оборвалась, попробуй еще раз.';
+        waitDiv.innerText = 'Сервер просыпается, нажми ещё раз через пару секунд!';
       }
     }
 
