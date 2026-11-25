@@ -212,7 +212,8 @@
             ctx.fillStyle = '#ffdbac';
             ctx.beginPath();
             ctx.arc(centerX, groundY - 275 + bodyYOffset, 40, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fill(); ctx.fillStyle = '#0a0a0a'; ctx.fillRect(centerX - 16, groundY - 280 + bodyYOffset, 6, 6); ctx.fillRect(centerX + 10, groundY - 280 + bodyYOffset, 6, 6);
+
 
             // Борода с легкой проседью
             ctx.fillStyle = '#3b3b40';
@@ -236,12 +237,12 @@
 
             // Рот (открывается при разговоре)
             ctx.fillStyle = '#4a0000';
-            ctx.fillRect(centerX - 10, groundY - 268 + bodyYOffset, 20, 8 + mouthOpen * 6);
+            ctx.fillRect(centerX - 10, groundY - 258 + bodyYOffset, 20, 8 + mouthOpen * 6);
 
             // Черная бейсболка
             ctx.fillStyle = '#0a0a0a';
             ctx.beginPath();
-            ctx.arc(centerX, groundY - 310 + bodyYOffset, 42, 0, Math.PI);
+            ctx.arc(centerX, groundY - 285 + bodyYOffset, 41, Math.PI, 0);
             ctx.fill();
             ctx.fillRect(centerX - 5, groundY - 315 + bodyYOffset, 60, 12);
         }
