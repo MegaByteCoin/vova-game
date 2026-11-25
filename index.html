@@ -194,6 +194,7 @@
             ctx.fillText('R★', canX + 4, canY + 25);
 
             // Правая рука (активная жестикуляция)
+            ctx.fillStyle = '#141414';
             ctx.beginPath();
             ctx.roundRect(centerX + 40 + handOffset, groundY - 210 + bodyYOffset - (mouthOpen*5), 25, 75, 15);
             ctx.fill();
