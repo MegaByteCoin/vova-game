@@ -1,194 +1,314 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Вован: Решала</title>
-  <script src="https://telegram.org"></script>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { background: #0a0d14; color: #fff; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-    #scene { width: 100%; height: 46vh; display: block; border-bottom: 2px solid #262c3a; }
-    #hud { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-size: 12px; background: rgba(10,13,20,0.75); padding: 7px 12px; border-radius: 10px; border: 1px solid #2a3142; backdrop-filter: blur(4px); }
-    #chat { flex: 1; padding: 10px 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .msg { padding: 9px 13px; border-radius: 14px; max-width: 85%; font-size: 14px; line-height: 1.35; animation: pop 0.2s ease; }
-    @keyframes pop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    .bot { background: #1c2230; align-self: flex-start; border: 1px solid #2d3548; }
-    .user { background: #1f6feb; align-self: flex-end; }
-    #quick { display: flex; gap: 6px; padding: 6px 8px; overflow-x: auto; background: #10141f; border-top: 1px solid #1e2433; }
-    .qbtn { white-space: nowrap; padding: 7px 11px; border-radius: 16px; border: 1px solid #30394f; background: #181f2e; color: #c9d1d9; font-size: 12px; }
-    #controls { display: flex; padding: 8px; gap: 6px; background: #121722; border-top: 1px solid #242b3b; }
-    input { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid #2d3548; background: #0a0d14; color: #fff; outline: none; font-size: 14px; }
-    button#sendBtn { padding: 10px 16px; border-radius: 10px; border: none; background: #238636; color: #fff; font-weight: bold; font-size: 15px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Саня: Решала</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --card-bg: #1c1c21;
+            --accent-orange: #ff5500;
+            --accent-blue: #1e90ff;
+            --text-main: #f4f4f6;
+            --text-muted: #8e8e98;
+            --border-color: #2c2c35;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        header {
+            background: var(--card-bg);
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .title-block h1 { font-size: 16px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
+        .title-block span { font-size: 11px; color: var(--accent-orange); font-weight: 600; }
+        .stats { display: flex; gap: 10px; font-size: 13px; font-weight: 700; }
+        .stat-badge { background: #26262e; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .stat-money { color: #4ade80; }
+        .stat-rep { color: #fbbf24; }
+        
+        #scene-container {
+            position: relative;
+            flex: 1;
+            min-height: 230px;
+            background: radial-gradient(circle at 50% 35%, #2a2a35 0%, #121214 85%);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--border-color);
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+        
+        .action-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .btn-action {
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-action:active { transform: scale(0.96); }
+        .btn-squat { background: #2c2c35; color: var(--text-main); border: 1px solid #3f3f4a; }
+        .btn-squat.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+        .btn-over { background: linear-gradient(135deg, #ff5500, #cc3300); color: #fff; }
+    </style>
 </head>
 <body>
-  <div id="hud">
-    <span>😎 Уважение: <b id="rep">50%</b></span>
-    <span>💵 Бабки: <b id="cash">1000₽</b></span>
-    <span>⚡ <b id="mood">На чиле</b></span>
-  </div>
-  <canvas id="scene"></canvas>
-  <div id="chat">
-    <div class="msg bot">Здарова, братуха. Ночь длинная, район не спит. С чем пожаловал?</div>
-  </div>
-  <div id="quick">
-    <button class="qbtn" onclick="quickSend('Здарова, есть деловое предложение.')">🤝 По делу</button>
-    <button class="qbtn" onclick="quickSend('Чё такой дерзкий? Расслабься.')">🔥 Наехать</button>
-    <button class="qbtn" onclick="quickSend('Держи на чай, расскажи чё нового.')">💵 Подгон</button>
-  </div>
-  <div id="controls">
-    <input id="inp" placeholder="Напиши свой вариант..." />
-    <button id="sendBtn" onclick="send()">▶</button>
-  </div>
+    <header>
+        <div class="title-block">
+            <h1>Саня: Решала</h1>
+            <span>Telegram Edition</span>
+        </div>
+        <div class="stats">
+            <div class="stat-badge">Баланс: <span id="balance" class="stat-money">0</span> ₴</div>
+            <div class="stat-badge">Авторитет: <span id="reputation" class="stat-rep">50</span></div>
+            <div class="stat-badge">Энергия: <span id="energy" class="stat-money">100</span>%</div>
+        </div>
+    </header>
 
-  <script>
-    if (window.Telegram && Telegram.WebApp) Telegram.WebApp.expand();
-    const API_URL = "https://" + "oleksandr-dmytrovych-denisov--vova-ai-bot-game-chat.us-east.modal.run";
-    const canvas = document.getElementById('scene');
-    const ctx = canvas.getContext('2d');
-    let t = 0, mood = 'calm', rep = 50, cash = 1000, talking = 0;
+    <div id="scene-container">
+        <canvas id="game-canvas"></canvas>
+    </div>
 
-    // Тихий прогрев сервера сразу при открытии игры
-    fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'Привет' }) }).catch(() => {});
+    <div class="action-bar">
+        <button id="btn-squat" class="btn-action btn-squat">На корты</button>
+        <button id="btn-over" class="btn-action btn-over">Глотнуть OVER</button>
+    </div>
+        <div id="chat-container">
+            <div id="messages"></div>
+        </div>
+        
+        <form id="input-form">
+            <input type="text" id="user-input" placeholder="Ответь Сане..." autocomplete="off">
+            <button type="submit" id="send-btn">Отправить</button>
+        </form>
+    </main>
 
-    function draw() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight * 0.46;
-      const w = canvas.width, h = canvas.height;
-      const cx = w / 2, ground = h - 28;
-      t += 0.05;
-      if (talking > 0) talking--;
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const messagesContainer = document.getElementById('messages');
+        const inputForm = document.getElementById('input-form');
+        const userInput = document.getElementById('user-input');
 
-      // Ночное небо и здания на фоне
-      const sky = ctx.createLinearGradient(0, 0, 0, h);
-      sky.addColorStop(0, '#090d16'); sky.addColorStop(1, '#1a2234');
-      ctx.fillStyle = sky; ctx.fillRect(0, 0, w, h);
+        let isSquatting = false;
+        let mouthOpen = 0;
+        let gesturePhase = 0;
+        let energyLevel = 100;
+        let reputation = 50;
+        let balance = 0;
 
-      ctx.fillStyle = '#111622';
-      ctx.fillRect(15, h * 0.22, 65, ground - h * 0.22);
-      ctx.fillRect(w - 85, h * 0.18, 70, ground - h * 0.18);
-
-      // Светящиеся окна
-      ctx.fillStyle = '#f2cc60';
-      ctx.fillRect(28, h * 0.28, 10, 14); ctx.fillRect(52, h * 0.36, 10, 14);
-      ctx.fillRect(w - 68, h * 0.25, 10, 14); ctx.fillRect(w - 42, h * 0.34, 10, 14);
-
-      // Уличный фонарь и луч света
-      ctx.strokeStyle = '#384152'; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(45, ground); ctx.lineTo(45, h * 0.14); ctx.lineTo(75, h * 0.14); ctx.stroke();
-      const glow = ctx.createRadialGradient(75, h * 0.15, 2, 75, h * 0.15, 110);
-      glow.addColorStop(0, 'rgba(255, 220, 130, 0.35)'); glow.addColorStop(1, 'rgba(255, 220, 130, 0)');
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(75, h * 0.15, 110, 0, Math.PI * 2); ctx.fill();
-
-      // Асфальт
-      ctx.fillStyle = '#141821'; ctx.fillRect(0, ground, w, 28);
-
-      const breath = Math.sin(t) * 2.5;
-      const armMove = mood === 'angry' ? Math.sin(t * 4) * 16 : (talking > 0 ? Math.sin(t * 5) * 10 : Math.sin(t * 1.2) * 4);
-
-      // Джинсы и кроссовки
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(cx - 18, ground - 62 + breath, 14, 56);
-      ctx.fillRect(cx + 4, ground - 62 + breath, 14, 56);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillRect(cx - 21, ground - 8, 18, 8);
-      ctx.fillRect(cx + 3, ground - 8, 18, 8);
-
-      // Кожанка и белая футболка
-      ctx.fillStyle = '#18181b';
-      ctx.beginPath(); ctx.roundRect(cx - 26, ground - 122 + breath, 52, 62, 12); ctx.fill();
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(cx - 7, ground - 120 + breath, 14, 55);
-
-      // Руки
-      ctx.strokeStyle = '#18181b'; ctx.lineWidth = 10; ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx - 25, ground - 112 + breath); ctx.lineTo(cx - 46, ground - 72 + armMove);
-      ctx.moveTo(cx + 25, ground - 112 + breath); ctx.lineTo(cx + 46, ground - 72 - armMove);
-      ctx.stroke();
-
-      // Голова и кепка
-      ctx.fillStyle = '#f1c29b';
-      ctx.beginPath(); ctx.arc(cx, ground - 146 + breath, 21, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#111827';
-      ctx.beginPath(); ctx.arc(cx, ground - 151 + breath, 21, Math.PI, 0); ctx.fill();
-      ctx.fillRect(cx - 22, ground - 153 + breath, 48, 5);
-
-      // Глаза и брови
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(cx - 9, ground - 148 + breath, 4, 4);
-      ctx.fillRect(cx + 5, ground - 148 + breath, 4, 4);
-      if (mood === 'angry') {
-        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(cx - 12, ground - 154 + breath); ctx.lineTo(cx - 3, ground - 150 + breath);
-        ctx.moveTo(cx + 12, ground - 154 + breath); ctx.lineTo(cx + 3, ground - 150 + breath);
-        ctx.stroke();
-      }
-
-      // Рот (двигается, когда говорит)
-      ctx.fillStyle = '#7f1d1d';
-      const mouthH = talking > 0 ? Math.abs(Math.sin(t * 8)) * 6 + 2 : 2;
-      ctx.fillRect(cx - 5, ground - 137 + breath, 10, mouthH);
-
-      requestAnimationFrame(draw);
-    }
-    draw();
-
-    function quickSend(text) {
-      if (text.includes('Подгон')) {
-        if (cash >= 100) { cash -= 100; rep = Math.min(100, rep + 10); }
-        document.getElementById('cash').innerText = cash + '₽';
-        document.getElementById('rep').innerText = rep + '%';
-      }
-      sendText(text);
-    }
-
-    function send() {
-      const inp = document.getElementById('inp');
-      const txt = inp.value.trim();
-      if (!txt) return;
-      inp.value = '';
-      sendText(txt);
-    }
-
-    async function sendText(txt) {
-      addMsg(txt, 'user');
-      const waitDiv = addMsg('⏳ Вован прикидывает...', 'bot');
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: txt })
-        });
-        const data = await res.json();
-        waitDiv.innerText = data.reply || 'Молчит...';
-        talking = 70;
-        const low = (data.reply || '').toLowerCase();
-        if (low.includes('кастет') || low.includes('хер') || low.includes('слышь') || low.includes('!')) {
-          mood = 'angry';
-          rep = Math.max(0, rep - 5);
-        } else {
-          mood = 'calm';
-          rep = Math.min(100, rep + 5);
+        function resizeCanvas() {
+            canvas.width = document.getElementById('scene-container').clientWidth;
+            canvas.height = document.getElementById('scene-container').clientHeight;
         }
-        document.getElementById('mood').innerText = mood === 'angry' ? 'На взводе' : 'На чиле';
-        document.getElementById('rep').innerText = rep + '%';
-      } catch (e) {
-        waitDiv.innerText = 'Сервер просыпается, нажми ещё раз через пару секунд!';
-      }
-    }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    function addMsg(text, cls) {
-      const div = document.createElement('div');
-      div.className = 'msg ' + cls;
-      div.innerText = text;
-      const chat = document.getElementById('chat');
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-      return div;
-    }
-  </script>
+        function drawSanya() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const groundY = canvas.height - 40;
+            const bodyYOffset = isSquatting ? 60 : 0;
+            const centerX = canvas.width / 2;
+
+            // Черные кроссовки
+            ctx.fillStyle = '#050505';
+            if (isSquatting) {
+                ctx.beginPath();
+                ctx.roundRect(centerX - 65, groundY - 12, 35, 12, 5);
+                ctx.roundRect(centerX + 30, groundY - 12, 35, 12, 5);
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.roundRect(centerX - 42, groundY - 14, 38, 14, 5);
+                ctx.roundRect(centerX + 4, groundY - 14, 38, 14, 5);
+                ctx.fill();
+            }
+
+            // Ноги (черные спортивки)
+            ctx.fillStyle = '#1a1a1a';
+            if (isSquatting) {
+                ctx.beginPath();
+                ctx.ellipse(centerX - 40, groundY - 22, 15, 28, Math.PI/4, 0, Math.PI * 2);
+                ctx.ellipse(centerX + 40, groundY - 22, 15, 28, -Math.PI/4, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.fillRect(centerX - 35, groundY - 142, 25, 128);
+                ctx.fillRect(centerX + 10, groundY - 142, 25, 128);
+            }
+
+            // Торс (черная спортивная одежда)
+            ctx.fillStyle = '#0a0a0a';
+            ctx.beginPath();
+            ctx.roundRect(centerX - 50, groundY - 220 + bodyYOffset, 100, 90, [20, 20, 10, 10]);
+            ctx.fill();
+
+            // Руки и жестикуляция
+            ctx.fillStyle = '#141414';
+            const handOffset = Math.sin(gesturePhase) * 15;
+            // Левая рука (с банкой OVER)
+            ctx.beginPath();
+            ctx.roundRect(centerX - 70 - handOffset, groundY - 200 + bodyYOffset, 30, 80, 15);
+            ctx.fill();
+            
+            // Оранжево-черная банка энергетика OVER со звездой на букве R
+            const canX = centerX - 67 - handOffset;
+            const canY = groundY - 172 + bodyYOffset;
+            ctx.fillStyle = '#ff5500';
+            ctx.beginPath();
+            ctx.roundRect(canX, canY, 22, 42, 4);
+            ctx.fill();
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(canX, canY + 13, 22, 16);
+            ctx.fillStyle = '#ff5500';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText('OVER', canX + 1, canY + 11);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('R★', canX + 4, canY + 25);
+
+            // Правая рука (активная жестикуляция)
+            ctx.beginPath();
+            ctx.roundRect(centerX + 40 + handOffset, groundY - 210 + bodyYOffset - (mouthOpen*5), 25, 75, 15);
+            ctx.fill();
+
+            // Шея и синие наушники на шее
+            ctx.fillStyle = '#d1d1d6';
+            ctx.fillRect(centerX - 15, groundY - 240 + bodyYOffset, 30, 25);
+            ctx.strokeStyle = '#1e90ff';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(centerX, groundY - 228 + bodyYOffset, 36, 0.85 * Math.PI, 0.15 * Math.PI);
+            ctx.stroke();
+
+            // Голова
+            ctx.fillStyle = '#ffdbac';
+            ctx.beginPath();
+            ctx.arc(centerX, groundY - 275 + bodyYOffset, 40, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Борода с легкой проседью
+            ctx.fillStyle = '#3b3b40';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 36, groundY - 275 + bodyYOffset);
+            ctx.arc(centerX, groundY - 265 + bodyYOffset, 38, 0.15 * Math.PI, 0.85 * Math.PI);
+            ctx.fill();
+            ctx.fillStyle = '#9ea3ad';
+            ctx.beginPath();
+            ctx.arc(centerX - 10, groundY - 256 + bodyYOffset, 9, 0, Math.PI * 2);
+            ctx.arc(centerX + 12, groundY - 254 + bodyYOffset, 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Зубочистка в углу рта
+            ctx.strokeStyle = '#fff8dc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX + 15, groundY - 270 + bodyYOffset);
+            ctx.lineTo(centerX + 46, groundY - 260 + bodyYOffset - mouthOpen);
+            ctx.stroke();
+
+            // Рот (открывается при разговоре)
+            ctx.fillStyle = '#4a0000';
+            ctx.fillRect(centerX - 10, groundY - 268 + bodyYOffset, 20, 8 + mouthOpen * 6);
+
+            // Черная бейсболка
+            ctx.fillStyle = '#0a0a0a';
+            ctx.beginPath();
+            ctx.arc(centerX, groundY - 310 + bodyYOffset, 42, 0, Math.PI);
+            ctx.fill();
+            ctx.fillRect(centerX - 5, groundY - 315 + bodyYOffset, 60, 12);
+        }
+        function updateAnimation() {
+            if (mouthOpen > 0) mouthOpen -= 0.1;
+            if (mouthOpen < 0) mouthOpen = 0;
+            gesturePhase += 0.1;
+            drawSanya();
+            requestAnimationFrame(updateAnimation);
+        }
+        updateAnimation();
+
+        function startTalking() {
+            mouthOpen = 2;
+        }
+
+        inputForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            appendMessage('Вы', text, 'user-msg');
+            userInput.value = '';
+            startTalking();
+
+            try {
+                const response = await fetch('https://your-modal-backend.modal.run/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+                const data = await response.json();
+                
+                startTalking();
+                appendMessage('Саня', data.reply, 'sanya-msg');
+                if (data.reward) {
+                    balance += data.reward;
+                    document.getElementById('balance').innerText = balance;
+                }
+            } catch (error) {
+                appendMessage('Саня', 'Слышь, сеть барахлит, повтори-ка.', 'sanya-msg');
+            }
+        });
+
+        function appendMessage(sender, text, className) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${className}`;
+            msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+            messagesContainer.appendChild(msgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        document.getElementById('btn-squat').addEventListener('click', () => {
+            isSquatting = !isSquatting;
+            document.getElementById('btn-squat').classList.toggle('active');
+            startTalking();
+        });
+
+        document.getElementById('btn-over').addEventListener('click', () => {
+            if (energyLevel < 100) {
+                energyLevel = Math.min(100, energyLevel + 25);
+                document.getElementById('energy').innerText = energyLevel;
+                startTalking();
+                appendMessage('Саня', 'О, тема! Энергия на максимум.', 'sanya-msg');
+            } else {
+                appendMessage('Саня', 'Куда в меня лезет? Я и так бодряком.', 'sanya-msg');
+            }
+        });
+    </script>
 </body>
 </html>
